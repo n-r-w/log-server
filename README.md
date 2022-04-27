@@ -1,4 +1,4 @@
-# Пример сервера логов на Go, построенного по принципам Clean Architecture (Golang log server server with a clean architecture approach)
+# Пример сервера логов на Go, построенного по принципам Clean Architecture (Golang log server with a clean architecture approach)
 
 Пример сервера логов на Go, построенного по принципам Clean Architecture. Пример учебный и в проде не использовался.
 Сервер работает по http rest и имеет следующие функции:
