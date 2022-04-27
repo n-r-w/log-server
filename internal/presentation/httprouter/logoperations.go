@@ -66,7 +66,6 @@ func (router *HTTPRouter) getLogRecords() http.HandlerFunc {
 		}
 
 		if r.Header.Get(binaryFormatHeaderName) == binaryFormatHeaderProtobuf {
-			w.Header().Add(binaryFormatHeaderName, binaryFormatHeaderProtobuf)
 			// клиент хочет Protobuf
 			mRecords := &schemalog.LogRecords{
 				Records: nil,

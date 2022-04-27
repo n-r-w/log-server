@@ -125,13 +125,14 @@ func (router *HTTPRouter) respond(w http.ResponseWriter, _ *http.Request, code i
 func (router *HTTPRouter) respondCompressed(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
 	if data == nil {
 		router.respond(w, r, code, data)
+
 		return
 	}
 
 	// проверяем хочет ли клиент сжатие
 	accepted := strings.Split(r.Header.Get("Accept-Encoding"), ",")
 	gzipCompression := slices.Contains(accepted, "gzip")
-	deflateCompression := slices.Contains(accepted, "deflate")
+	deflateCompression := !gzipCompression && slices.Contains(accepted, "deflate")
 
 	if !gzipCompression && !deflateCompression {
 		router.respond(w, r, code, data)
@@ -140,51 +141,37 @@ func (router *HTTPRouter) respondCompressed(w http.ResponseWriter, r *http.Reque
 	}
 
 	// заполняем буфер для сжатия
-	var sourceBuf bytes.Buffer
+	var sourceData []byte
 	switch d := data.(type) {
 	case string:
-		sourceBuf.Write([]byte(d))
+		sourceData = []byte(d)
 	default:
-		if err := json.NewEncoder(&sourceBuf).Encode(data); err != nil {
-			router.respondError(w, r, http.StatusInternalServerError, err)
+		var errJSON error
+		sourceData, errJSON = json.Marshal(data)
 
-			return
+		if errJSON != nil {
+			router.respondError(w, r, http.StatusInternalServerError, errJSON)
 		}
+
 		w.Header().Set("Content-Type", "application/json")
 	}
 
-	// сжимаем по нужному алгоритму
-	var compressor io.WriteCloser
-
-	var compressedBuf bytes.Buffer
-
-	var err error
-
-	if gzipCompression {
-		compressor, err = gzip.NewWriterLevel(&compressedBuf, gzip.BestSpeed)
-
-		w.Header().Set("Content-Encoding", "gzip")
-	} else if deflateCompression {
-		compressor, err = flate.NewWriter(&compressedBuf, flate.BestSpeed)
+	if deflateCompression {
 		w.Header().Set("Content-Encoding", "deflate")
+	} else {
+		w.Header().Set("Content-Encoding", "gzip")
 	}
+
+	compressedData, err := compressData(deflateCompression, sourceData)
 
 	if err != nil {
-		log.Fatal("init compression error")
-	}
+		router.respondError(w, r, http.StatusInternalServerError, err)
 
-	if _, err := sourceBuf.WriteTo(compressor); err != nil {
-		router.respondError(w, r, http.StatusInternalServerError, err)
-		return
-	}
-	if err := compressor.Close(); err != nil {
-		router.respondError(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
 	w.WriteHeader(code)
-	// отдаем результат клиенту
-	_, _ = compressedBuf.WriteTo(w)
+	_, _ = w.Write(compressedData)
 }
 
 // Ответ на запрос в формате flatbuffers
@@ -197,8 +184,6 @@ func (router *HTTPRouter) respondBinary(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	w.WriteHeader(code)
-
 	switch format {
 	case binaryFormatLogs:
 		w.Header().Add(binaryFormatHeaderName, binaryFormatHeaderProtobuf)
@@ -208,29 +193,23 @@ func (router *HTTPRouter) respondBinary(w http.ResponseWriter, r *http.Request, 
 	}
 
 	if compress {
-		// жмем
-		compressor, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
-		if err != nil {
-			log.Fatal("init compression error")
-		}
-		// отдаем результат клиенту
 		dataBytes, ok := data.([]byte)
-		if ok {
-			if _, err := compressor.Write(dataBytes); err != nil {
-				router.respondError(w, r, http.StatusInternalServerError, err)
-
-				return
-			}
-			if err := compressor.Close(); err != nil {
-				router.respondError(w, r, http.StatusInternalServerError, err)
-
-				return
-			}
-
-			w.Header().Set("Content-Encoding", "gzip")
-		} else {
+		if !ok {
 			log.Fatalln("internal error")
+
+			return
 		}
+
+		compressedBytes, err := compressData(false, dataBytes)
+
+		if err != nil {
+			router.respondError(w, r, http.StatusInternalServerError, err)
+
+			return
+		}
+
+		w.WriteHeader(code)
+		_, _ = w.Write(compressedBytes)
 
 		return
 	}
@@ -239,9 +218,9 @@ func (router *HTTPRouter) respondBinary(w http.ResponseWriter, r *http.Request, 
 
 	switch d := data.(type) {
 	case []byte:
-		_, _ = w.Write(d) //nolint:errcheck
+		_, _ = w.Write(d)
 	default:
-		log.Fatalln("bad flatbuffers data")
+		log.Fatalln("bad binary data")
 	}
 }
 
@@ -251,7 +230,40 @@ func currentUser(r *http.Request) *model.User {
 	if ok {
 		return user
 	}
+
 	log.Fatalln("internal error")
 
 	return nil
+}
+
+func compressData(deflateCompression bool, data []byte) (resData []byte, err error) {
+	if data == nil {
+		return []byte{}, nil
+	}
+
+	// алгоритм сжатия
+	var compressor io.WriteCloser
+	// целевой буфер
+	var compressedBuf bytes.Buffer
+
+	// сжимаем по нужному алгоритму
+	if deflateCompression {
+		if compressor, err = flate.NewWriter(&compressedBuf, flate.BestSpeed); err != nil {
+			return nil, errors.Wrap(err, "deflate error")
+		}
+	} else {
+		if compressor, err = gzip.NewWriterLevel(&compressedBuf, gzip.BestSpeed); err != nil {
+			return nil, errors.Wrap(err, "gzip error")
+		}
+	}
+
+	if _, err := compressor.Write(data); err != nil {
+		return nil, errors.Wrap(err, "compress error")
+	}
+
+	if err := compressor.Close(); err != nil {
+		return nil, errors.Wrap(err, "compress error")
+	}
+
+	return compressedBuf.Bytes(), nil
 }
