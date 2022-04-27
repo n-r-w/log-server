@@ -1,0 +1,34 @@
+# порт запуска сервера
+BIND_ADDR = "localhost:8080"
+# логин для админа. админ не содержится в БД и всегда неявно присутствует
+SUPERADMIN_LOGIN = "admin"
+# пароль для админа. админ не содержится в БД и всегда неявно присутствует
+SUPERADMIN_PASSWORD = "123"
+# уровень отладки
+LOG_LEVEL = "debug"
+# строка подключения к БД
+DATABASE_URL = "host=localhost user=postgres password=1 port=5433 dbname=kp_logs sslmode=disable connect_timeout=5000 statement_timeout=5000"
+# Максимальное количество сессий БД
+MAX_DB_SESSIONS = 800
+# Время жизни незадействованного соединения к БД
+MAX_DB_SESSION_IDLE_TIME_SEC = 10
+# Ключ шифрования куки
+SESSION_ENCRYPTION_KEY = "e09469b1507d0e7a98831750aff903e0831a428f9addf3cfa348fa64dcfb249a0f8c666f8dda6315c19c5ed946d89703a134db0eae8b4632d063b4a06207b8a3"
+# Максимальное количество записей лога, возвращающемое по запросу
+MAX_LOG_RECORDS_RESULT = 999999999
+
+# Minimum eight characters, at least one letter and one number:
+# "^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$"
+# Minimum eight characters, at least one letter, one number and one special character:
+# "^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$"
+# Minimum eight characters, at least one uppercase letter, one lowercase letter and one number:
+# "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$"
+# Minimum eight characters, at least one uppercase letter, one lowercase letter, one number and one special character:
+# "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
+# Minimum eight and maximum 10 characters, at least one uppercase letter, one lowercase letter, one number and one special character:
+# "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,10}$"
+# Латинские буквы и цифры без пробелов
+# "^[A-Za-z0-9]+$"
+# Латинские буквы, цифры и символы @$!%*?& без пробелов, минимум 4 символа
+PASSWORD_REGEX = "^[A-Za-z0-9@$!%*?&]{4,}$"
+PASSWORD_REGEX_ERROR = "Латинские буквы, цифры и символы @$!%*?& без пробелов, минимум 4 символа"

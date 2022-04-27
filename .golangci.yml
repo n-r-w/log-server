@@ -1,0 +1,27 @@
+linters:
+  enable-all: true
+  disable:
+    - gofumpt
+    - gofmt  
+    - gochecknoglobals
+    - goimports
+    - varnamelen
+
+linters-settings:
+  # gci:    
+  #   no-inline-comments: true
+  #   no-prefix-comments: true
+  godot:
+    period: false
+    exclude:
+      # Exclude todo and fixme comments.
+      - "^fixme:"
+      - "^todo:"
+
+issues:
+  exclude:
+    - "Function '(.*)' is too long "
+
+run:
+  skip-files:
+    - "*.toml"

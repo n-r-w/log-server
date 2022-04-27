@@ -1,0 +1,18 @@
+syntax = "proto3";
+package schema;
+option go_package = "schema.log";
+import "google/protobuf/timestamp.proto";
+
+message  LogRecord {
+	uint64 id 							= 1;
+	google.protobuf.Timestamp log_time 	= 2;
+	google.protobuf.Timestamp real_time = 3;	
+	uint32 level 						= 4;
+	string message1  					= 5;
+	string message2  					= 6;
+	string message3  					= 7;
+}
+
+message LogRecords {
+	repeated LogRecord records = 1;
+}
