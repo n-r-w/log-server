@@ -1,6 +1,8 @@
 package testrepo
 
 import (
+	"sync"
+
 	"github.com/n-r-w/log-server/internal/domain/model"
 	"github.com/n-r-w/log-server/internal/repository"
 )
@@ -9,9 +11,11 @@ var testDB *testDbImpl
 
 // Реализация SqlDbInterface для psql
 type testDbImpl struct {
+	userMutex sync.RWMutex
 	userIdMax uint64
 	userByID  map[uint64]*model.User
 
+	logMutex sync.RWMutex
 	logIdMax uint64
 	logByID  map[uint64]*model.LogRecord
 }

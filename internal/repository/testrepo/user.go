@@ -41,9 +41,11 @@ func (r *testUserImpl) Insert(user *model.User) error {
 		return werrors.Wrap(err, "user validate error")
 	}
 
+	r.dbImpl.userMutex.Lock()
 	r.dbImpl.userByID[r.dbImpl.userIdMax] = user
 	r.dbImpl.userIdMax++
 	user.ID = r.dbImpl.userIdMax
+	r.dbImpl.userMutex.Unlock()
 
 	return nil
 }

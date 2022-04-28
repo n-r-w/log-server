@@ -7,7 +7,7 @@ rebuild:
 	go build -a -v -o . ./cmd/logserver
 
 race:
-	go test -v -race -timeout 30s ./...
+	go run -race ./cmd/logserver
 
 run:
 	go run ./cmd/logserver
@@ -22,7 +22,7 @@ proto:
 	protoc --proto_path=./api/proto --go_out=./api/schema ./api/proto/log.proto
 
 tests:
-	go test ./internal/domain/model/
-	go test ./internal/presentation/httprouter/
+	go test -race ./internal/domain/model/
+	go test -race ./internal/presentation/httprouter/
 
 .DEFAULT_GOAL := run

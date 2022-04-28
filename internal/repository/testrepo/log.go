@@ -26,6 +26,7 @@ func NewLog(db repository.DBOInterface) repository.LogInterface { //nolint:iretu
 }
 
 func (p *testLogImpl) Insert(records *[]model.LogRecord) error {
+	p.dbImpl.logMutex.Lock()
 	for _, record := range *records {
 		// если тут не делать копию, то в мапе всегда окажется последняя запись
 		rcopy := record
@@ -33,6 +34,7 @@ func (p *testLogImpl) Insert(records *[]model.LogRecord) error {
 		p.dbImpl.logIdMax++
 		rcopy.ID = p.dbImpl.logIdMax
 	}
+	p.dbImpl.logMutex.Unlock()
 
 	return nil
 }
@@ -40,6 +42,7 @@ func (p *testLogImpl) Insert(records *[]model.LogRecord) error {
 func (p *testLogImpl) Find(dateFrom time.Time, dateTo time.Time) (*[]model.LogRecord, error) {
 	records := make([]model.LogRecord, 0, 100)
 
+	p.dbImpl.logMutex.RLock()
 	for _, r := range p.dbImpl.logByID {
 		if !dateFrom.IsZero() && r.LogTime.Before(dateFrom) {
 			continue
@@ -51,6 +54,7 @@ func (p *testLogImpl) Find(dateFrom time.Time, dateTo time.Time) (*[]model.LogRe
 
 		records = append(records, *r)
 	}
+	p.dbImpl.logMutex.RUnlock()
 
 	return &records, nil
 }
