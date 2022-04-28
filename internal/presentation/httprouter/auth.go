@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/gorilla/sessions"
 	"github.com/n-r-w/log-server/internal/app/config"
 	"github.com/n-r-w/log-server/internal/app/logger"
 	"github.com/n-r-w/log-server/internal/domain/model"
@@ -42,14 +43,23 @@ func (router *HTTPRouter) handleSessionsCreate() http.HandlerFunc {
 			return
 		}
 		// получаем сесиию
-		session, err := router.sessionStore.Get(r, sessionName)
+		session, err := router.sessionStore.Get(r, SessionName)
 		if err != nil {
 			router.respondError(w, r, http.StatusInternalServerError, err)
 
 			return
 		}
 		// записываем информацию о том, что пользователь с таким ID залогинился
-		session.Values[userIDKeyName] = ID
+		session.Values[UserIDKeyName] = ID
+		session.Options = &sessions.Options{
+			Path:     "",
+			Domain:   "",
+			MaxAge:   config.AppConfig.SessionAge,
+			Secure:   false,
+			HttpOnly: true, // прячем содержимое сессии от доступа через JavaSript в браузере
+			SameSite: 0,
+		}
+
 		if err := router.sessionStore.Save(r, w, session); err != nil {
 			router.respondError(w, r, http.StatusInternalServerError, err)
 
@@ -60,32 +70,34 @@ func (router *HTTPRouter) handleSessionsCreate() http.HandlerFunc {
 	}
 }
 
-// Аутентификация пользователя на основании ранее прошедшего логина (создания сессии)
-func (router *HTTPRouter) authenticateUser(next http.Handler) http.Handler {
+// AuthenticateUser - Аутентификация пользователя на основании ранее прошедшего логина (создания сессии)
+func (router *HTTPRouter) AuthenticateUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// извлекаем из запроса пользователя куки с инфорамацией о сессии
-		session, err := router.sessionStore.Get(r, sessionName)
+		session, err := router.sessionStore.Get(r, SessionName)
 		if err != nil {
 			router.respondError(w, r, http.StatusInternalServerError, err)
 
 			return
 		}
+
 		// ищем в информацию о пользователе в сессиях
-		id, ok := session.Values[userIDKeyName]
-		if !ok {
+		id, ok := session.Values[UserIDKeyName]
+		if !ok || session.Options.MaxAge < 0 {
 			router.respondError(w, r, http.StatusUnauthorized, errNotAuthenticated)
 
 			return
 		}
+
 		// берем инфу о пользователе из БД
-		u, err := router.domain.UserUsecase.FindByID(id.(int64))
+		user, err := router.domain.UserUsecase.FindByID(id.(uint64))
 		if err != nil {
 			router.respondError(w, r, http.StatusUnauthorized, errNotAuthenticated)
 
 			return
 		}
 		// добавляем модель пользователя в контекст запроса
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKeyUser, u)))
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKeyUser, user)))
 	})
 }
 
@@ -102,14 +114,14 @@ func (router *HTTPRouter) handleWhoami() http.HandlerFunc {
 func (router *HTTPRouter) closeSession() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// получаем сесиию
-		session, err := router.sessionStore.Get(r, sessionName)
+		session, err := router.sessionStore.Get(r, SessionName)
 		if err != nil {
 			router.respondError(w, r, http.StatusInternalServerError, err)
 
 			return
 		}
 		// удаляем из нее данные о логине
-		delete(session.Values, userIDKeyName)
+		delete(session.Values, UserIDKeyName)
 		// сохраняем
 		if err := router.sessionStore.Save(r, w, session); err != nil {
 			logger.Logger().Errorln("session save error")

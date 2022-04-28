@@ -7,10 +7,11 @@ import (
 
 // Конфиг logserver.toml
 type config struct {
-	SuperAdminID            int64
+	SuperAdminID            uint64
 	BindAddr                string `toml:"BIND_ADDR"`
 	SuperAdminLogin         string `toml:"SUPERADMIN_LOGIN"`
 	SuperPassword           string `toml:"SUPERADMIN_PASSWORD"`
+	SessionAge              int    `toml:"SESSION_AGE"`
 	LogLevel                string `toml:"LOG_LEVEL"`
 	DatabaseURL             string `toml:"DATABASE_URL"`
 	SessionEncriptionKey    string `toml:"SESSION_ENCRYPTION_KEY"`
@@ -29,6 +30,7 @@ const (
 	maxDbSessions           = 50
 	maxDbSessionIdleTimeSec = 50
 	maxLogRecordsResult     = 100000
+	defaultSessionAge       = 60 * 60 * 24 // 24 часа
 )
 
 // Load Инициализация конфига значениями по умолчанию
@@ -38,16 +40,21 @@ func Load(path string) error {
 		BindAddr:                "http://localhost:8080",
 		SuperAdminLogin:         "admin",
 		SuperPassword:           "admin",
+		SessionAge:              defaultSessionAge,
 		LogLevel:                "debug",
 		DatabaseURL:             "log",
 		SessionEncriptionKey:    "e09469b1507d0e7a98831750aff903e0831a428f9addf3cfa348fa64dcf",
 		MaxDbSessions:           maxDbSessions,
 		MaxDbSessionIdleTimeSec: maxDbSessionIdleTimeSec,
 		MaxLogRecordsResult:     maxLogRecordsResult,
-		PasswordRegex:           "^[A-Za-z0-9@$!%*?&]{8,}$",
-		PasswordRegexError:      "Латинские буквы, цифры и символы @$!%*?& без пробелов, минимум 4 символа",
+		// PasswordRegex:           "^[A-Za-z0-9@$!%*?&]{8,}$",
+		PasswordRegex:      ".*",
+		PasswordRegexError: "Латинские буквы, цифры и символы @$!%*?& без пробелов, минимум 4 символа",
 	}
 
+	if path == "" {
+		return nil
+	}
 	_, err := toml.DecodeFile(path, AppConfig)
 
 	return errors.Wrap(err, "toml error")

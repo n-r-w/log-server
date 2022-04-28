@@ -4,11 +4,14 @@ import (
 	"flag"
 	"log"
 
+	"github.com/gorilla/sessions"
 	"github.com/n-r-w/log-server/internal/app/config"
 	"github.com/n-r-w/log-server/internal/domain"
 	"github.com/n-r-w/log-server/internal/domain/usecase"
 	"github.com/n-r-w/log-server/internal/presentation/httprouter"
+	"github.com/n-r-w/log-server/internal/repository"
 	"github.com/n-r-w/log-server/internal/repository/psql"
+	"github.com/n-r-w/log-server/internal/repository/testrepo"
 )
 
 func main() {
@@ -24,15 +27,31 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// создаем подключение к БД
-	sqlDb, err := psql.NewSQLDb()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// создаем экземпляры объектов, реализующих различные интерфейсы
-	userRepo := psql.NewUser(sqlDb)
-	logRepo := psql.NewLog(sqlDb)
+
+	var userRepo repository.UserInterface
+
+	var logRepo repository.LogInterface
+
+	if true {
+		// реальная БД
+		dbo, err := psql.CreatePsqlDBO()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		userRepo = psql.NewUser(dbo)
+		logRepo = psql.NewLog(dbo)
+	} else {
+		// фейковая БД
+		dbo, err := testrepo.CreateTestlDBO()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		userRepo = testrepo.NewUser(dbo)
+		logRepo = testrepo.NewLog(dbo)
+	}
 
 	// создаем сценарии
 	userUsecase := usecase.NewUserCase(userRepo)
@@ -42,10 +61,10 @@ func main() {
 	dom := domain.NewDomain(logCase, userUsecase)
 
 	// создаем роутер
-	router := httprouter.NewRouter(dom)
+	sessionStore := sessions.NewCookieStore([]byte(config.AppConfig.SessionEncriptionKey))
+	router := httprouter.NewRouter(dom, sessionStore)
 
-	err = router.Start()
-	if err != nil {
+	if err := router.Start(); err != nil {
 		log.Fatal(err)
 	}
 }

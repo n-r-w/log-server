@@ -27,17 +27,17 @@ import (
 type contextKey int8
 
 const (
-	// Имя приложения
-	appName = "LogServer"
-	// Ключ для хранения информации о сессии со стороны пользователя
-	sessionName = "logserver"
-	// Ключ для хранения id пользователя в сессии (в куках)
-	userIDKeyName = "user_id"
+	// AppName Имя приложения
+	AppName = "LogServer"
+	// SessionName Ключ для хранения информации о сессии со стороны пользователя
+	SessionName = "logserver"
+	// UserIDKeyName Ключ для хранения id пользователя в сессии (в куках)
+	UserIDKeyName = "user_id"
 
-	// Имя хедера REST запроса, в котором клиент указывает в каком виде он желает получить ответ
-	binaryFormatHeaderName = "binary-format"
-	// Требуется ответ в формате protobuf
-	binaryFormatHeaderProtobuf = "protobuf"
+	// BinaryFormatHeaderName Имя хедера REST запроса, в котором клиент указывает в каком виде он желает получить ответ
+	BinaryFormatHeaderName = "binary-format"
+	// BinaryFormatHeaderProtobuf Требуется ответ в формате protobuf
+	BinaryFormatHeaderProtobuf = "protobuf"
 )
 
 const (
@@ -63,10 +63,10 @@ type HTTPRouter struct {
 }
 
 // NewRouter Создание роутера
-func NewRouter(domain *domain.Domain) *HTTPRouter {
+func NewRouter(domain *domain.Domain, sessionStore sessions.Store) *HTTPRouter {
 	r := HTTPRouter{
 		router:       mux.NewRouter(),
-		sessionStore: sessions.NewCookieStore([]byte(config.AppConfig.SessionEncriptionKey)),
+		sessionStore: sessionStore,
 		domain:       domain,
 	}
 	// инициализация маршрутов
@@ -82,7 +82,7 @@ func (router *HTTPRouter) Start() error {
 		return errors.Wrap(err, "listen error")
 	}
 
-	logger.Logger().Infof("%s listening on %s", appName, config.AppConfig.BindAddr)
+	logger.Logger().Infof("%s listening on %s", AppName, config.AppConfig.BindAddr)
 	// Запуск event loop TODO - таймауты
 	return errors.Wrap(http.Serve(l, router.router), "serve error")
 }
@@ -186,7 +186,7 @@ func (router *HTTPRouter) respondBinary(w http.ResponseWriter, r *http.Request, 
 
 	switch format {
 	case binaryFormatLogs:
-		w.Header().Add(binaryFormatHeaderName, binaryFormatHeaderProtobuf)
+		w.Header().Add(BinaryFormatHeaderName, BinaryFormatHeaderProtobuf)
 
 	default:
 		log.Fatalln("bad binary format")
@@ -236,6 +236,7 @@ func currentUser(r *http.Request) *model.User {
 	return nil
 }
 
+// Сжатие массива данных
 func compressData(deflateCompression bool, data []byte) (resData []byte, err error) {
 	if data == nil {
 		return []byte{}, nil

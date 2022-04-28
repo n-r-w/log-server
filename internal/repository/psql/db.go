@@ -7,31 +7,25 @@ import (
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/n-r-w/log-server/internal/app/config"
+	"github.com/n-r-w/log-server/internal/repository"
 	"github.com/pkg/errors"
 )
 
-var (
-	errLoginExist              = errors.New("login exist")
-	errUserNotFound            = errors.New("user not found")
-	errCantChangeAdminPassword = errors.New("can't change admin password")
-	errCantChangeAdminUser     = errors.New("can't change admin user")
-)
+var sqlDB *sqlDbImpl
 
 // Реализация SqlDbInterface для psql
 type sqlDbImpl struct {
 	db *pgxpool.Pool
 }
 
-// NewSQLDb Создание нового хранилища
-func NewSQLDb() (*pgxpool.Pool, error) {
-	s := sqlDbImpl{
-		db: nil,
-	}
-	if err := s.dbConnect(); err != nil {
+func CreatePsqlDBO() (repository.DBOInterface, error) {
+	sqlDB = new(sqlDbImpl)
+
+	if err := sqlDB.dbConnect(); err != nil {
 		return nil, err
 	}
 
-	return s.db, nil
+	return sqlDB, nil
 }
 
 // Close Завершение работы с хранилищем

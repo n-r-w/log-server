@@ -1,0 +1,56 @@
+package testrepo
+
+import (
+	"log"
+	"time"
+
+	"github.com/n-r-w/log-server/internal/domain/model"
+	"github.com/n-r-w/log-server/internal/repository"
+)
+
+// Релизация интерфейса LogInterface для psql
+type testLogImpl struct {
+	dbImpl *testDbImpl
+}
+
+// NewLog Возвращаем интерфейс работы с логами
+func NewLog(db repository.DBOInterface) repository.LogInterface { //nolint:ireturn
+	dbImpl, ok := db.(*testDbImpl)
+	if !ok {
+		log.Panicln("internal error")
+	}
+
+	return &testLogImpl{
+		dbImpl: dbImpl,
+	}
+}
+
+func (p *testLogImpl) Insert(records *[]model.LogRecord) error {
+	for _, record := range *records {
+		// если тут не делать копию, то в мапе всегда окажется последняя запись
+		rcopy := record
+		p.dbImpl.logByID[p.dbImpl.logIdMax] = &rcopy
+		p.dbImpl.logIdMax++
+		rcopy.ID = p.dbImpl.logIdMax
+	}
+
+	return nil
+}
+
+func (p *testLogImpl) Find(dateFrom time.Time, dateTo time.Time) (*[]model.LogRecord, error) {
+	records := make([]model.LogRecord, 0, 100)
+
+	for _, r := range p.dbImpl.logByID {
+		if !dateFrom.IsZero() && r.LogTime.Before(dateFrom) {
+			continue
+		}
+
+		if !dateTo.IsZero() && r.LogTime.After(dateTo) {
+			continue
+		}
+
+		records = append(records, *r)
+	}
+
+	return &records, nil
+}

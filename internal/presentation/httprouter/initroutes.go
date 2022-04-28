@@ -22,7 +22,7 @@ func (router *HTTPRouter) initRoutes() {
 	// создаем подчиненный роутер
 	private := router.router.PathPrefix("/private").Subrouter()
 	// устанавливаем middleware для проверки валидности сессии
-	private.Use(router.authenticateUser)
+	private.Use(router.AuthenticateUser)
 
 	// запрос с информацией о текущей сессии
 	private.HandleFunc("/whoami", router.handleWhoami())

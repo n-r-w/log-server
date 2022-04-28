@@ -4,6 +4,7 @@ package psql
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -15,17 +16,23 @@ import (
 
 // Релизация интерфейса LogInterface для psql
 type logImpl struct {
-	// Здесь находится экземпляр, а не указатель, т.к. все репозитории имеют свой автономный интерфейс
-	// это означает, что они могут использовать как одну физическую БД, так и разные
-	// За инициализацию бд отвечает фабрика репозиториев
-	db *pgxpool.Pool
+	dbImpl *sqlDbImpl
+	db     *pgxpool.Pool
 }
 
-func NewLog(db *pgxpool.Pool) repository.LogInterface { //nolint:ireturn
+// NewLog Возвращаем интерфейс работы с логами
+func NewLog(db repository.DBOInterface) repository.LogInterface { //nolint:ireturn
+	dbImpl, ok := db.(*sqlDbImpl)
+	if !ok {
+		log.Panicln("internal error")
+	}
+
 	return &logImpl{
-		db: db,
+		dbImpl: dbImpl,
+		db:     dbImpl.db,
 	}
 }
+
 func (p *logImpl) Insert(records *[]model.LogRecord) error {
 	var sqlText string
 

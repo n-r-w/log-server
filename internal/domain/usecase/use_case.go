@@ -17,17 +17,17 @@ import (
 
 type UserInterface interface {
 	// CheckPassword Проверить пароль
-	CheckPassword(login string, password string) (ID int64, err error)
+	CheckPassword(login string, password string) (ID uint64, err error)
 	// ChangePassword Сменить пароль
-	ChangePassword(currentUser *model.User, login string, password string) (ID int64, err error)
+	ChangePassword(currentUser *model.User, login string, password string) (ID uint64, err error)
 
 	Insert(user *model.User) error
-	Remove(id int64) error
+	Remove(id uint64) error
 	Update(user *model.User) error
 
-	FindByID(id int64) (*model.User, error)
+	FindByID(id uint64) (*model.User, error)
 	FindByLogin(login string) (*model.User, error)
-	GetUsers() ([]model.User, error)
+	GetUsers() (*[]model.User, error)
 }
 
 type LogInterface interface {

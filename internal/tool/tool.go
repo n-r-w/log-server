@@ -4,20 +4,26 @@ package tool
 import (
 	"fmt"
 	"log"
+	"strings"
 
-	validation "github.com/go-ozzo/ozzo-validation"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/n-r-w/log-server/internal/app/logger"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // EncryptPassword Генерация хэша пароля
 func EncryptPassword(s string) (string, error) {
-	b, err := bcrypt.GenerateFromPassword([]byte(s), bcrypt.MinCost)
+	b, err := bcrypt.GenerateFromPassword([]byte(strings.TrimSpace(s)), bcrypt.MinCost)
 	if err != nil {
 		return "", fmt.Errorf("failed GenerateFromPassword %w ", err)
 	}
 
 	return string(b), nil
+}
+
+// ComparePassword Подходит ли пароль
+func ComparePassword(encryptedPassword string, password string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(encryptedPassword), []byte(password)) == nil
 }
 
 // RequiredIf Валидатор для проверки по условию

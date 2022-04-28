@@ -24,7 +24,7 @@ func NewUserCase(r repository.UserInterface) UserInterface {
 }
 
 // CheckPassword Проверить пароль
-func (u *userCase) CheckPassword(login string, password string) (ID int64, err error) {
+func (u *userCase) CheckPassword(login string, password string) (ID uint64, err error) {
 	// ищем в БД по логину
 	user, err := u.UserRepo.FindByLogin(login)
 	if err != nil {
@@ -39,12 +39,12 @@ func (u *userCase) CheckPassword(login string, password string) (ID int64, err e
 }
 
 // ChangePassword Проверить пароль
-func (u *userCase) ChangePassword(currentUser *model.User, login string, password string) (ID int64, err error) {
+func (u *userCase) ChangePassword(currentUser *model.User, login string, password string) (ID uint64, err error) {
 	login = strings.TrimSpace(login)
 	password = strings.TrimSpace(password)
 	changeSelf := currentUser.Login == login
 
-	var id int64
+	var id uint64
 
 	if !changeSelf {
 		if currentUser.ID != config.AppConfig.SuperAdminID {
@@ -73,7 +73,7 @@ func (u *userCase) Insert(user *model.User) error {
 	return u.UserRepo.Insert(user) //nolint:wrapcheck
 }
 
-func (u *userCase) Remove(id int64) error {
+func (u *userCase) Remove(id uint64) error {
 	return u.UserRepo.Remove(id) //nolint:wrapcheck
 }
 
@@ -81,7 +81,7 @@ func (u *userCase) Update(user *model.User) error {
 	return u.UserRepo.Update(user) //nolint:wrapcheck
 }
 
-func (u *userCase) FindByID(id int64) (*model.User, error) {
+func (u *userCase) FindByID(id uint64) (*model.User, error) {
 	return u.UserRepo.FindByID(id) //nolint:wrapcheck
 }
 
@@ -89,6 +89,6 @@ func (u *userCase) FindByLogin(login string) (*model.User, error) {
 	return u.UserRepo.FindByLogin(login) //nolint:wrapcheck
 }
 
-func (u *userCase) GetUsers() ([]model.User, error) {
+func (u *userCase) GetUsers() (*[]model.User, error) {
 	return u.UserRepo.GetUsers() //nolint:wrapcheck
 }

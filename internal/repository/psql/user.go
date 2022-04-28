@@ -20,42 +20,27 @@ import (
 
 // Релизация интерфейса UserInterface для psql
 type userImpl struct {
-	// Здесь находится экземпляр, а не указатель, т.к. все репозитории имеют свой автономный интерфейс
-	// это означает, что они могут использовать как одну физическую БД, так и разные
-	// За инициализацию бд отвечает фабрика репозиториев
-	db *pgxpool.Pool
+	dbImpl *sqlDbImpl
+	db     *pgxpool.Pool
 } //nolint:nolintlint,ireturn
 
 // NewUser Возвращаем интерфейс работы с пользователем
-func NewUser(db *pgxpool.Pool) repository.UserInterface { //nolint:ireturn
+func NewUser(db repository.DBOInterface) repository.UserInterface { //nolint:ireturn
+	dbImpl, ok := db.(*sqlDbImpl)
+	if !ok {
+		log.Panicln("internal error")
+	}
+
 	return &userImpl{
-		db: db,
+		dbImpl: dbImpl,
+		db:     dbImpl.db,
 	}
-}
-
-// Фейковый пользователь - админ
-func (r *userImpl) adminUser() *model.User {
-	user := &model.User{
-		ID:                config.AppConfig.SuperAdminID,
-		Name:              "admin",
-		Login:             config.AppConfig.SuperAdminLogin,
-		Password:          config.AppConfig.SuperPassword,
-		EncryptedPassword: "",
-	}
-
-	if err := tool.LogIf(user.Prepare(true), "internal error"); err != nil {
-		log.Fatalln("internal error")
-
-		return nil
-	}
-
-	return user
 }
 
 // Insert Добавить нового пользвателя
 func (r *userImpl) Insert(user *model.User) error {
 	if user.ID == config.AppConfig.SuperAdminID || strings.EqualFold(user.Login, config.AppConfig.SuperAdminLogin) {
-		return errCantChangeAdminUser
+		return repository.ErrCantChangeAdminUser
 	}
 
 	if err := user.Prepare(true); err != nil {
@@ -74,7 +59,7 @@ func (r *userImpl) Insert(user *model.User) error {
 	).Scan(&user.ID)
 	if err != nil {
 		if e := pgerror.UniqueViolation(err); e != nil {
-			return errLoginExist
+			return repository.ErrLoginExist
 		}
 
 		return werrors.Wrap(err, "QueryRow error")
@@ -84,9 +69,9 @@ func (r *userImpl) Insert(user *model.User) error {
 }
 
 // ChangePassword Изменить пароль пользователя
-func (r *userImpl) ChangePassword(userID int64, password string) error {
+func (r *userImpl) ChangePassword(userID uint64, password string) error {
 	if userID == config.AppConfig.SuperAdminID {
-		return errCantChangeAdminPassword
+		return repository.ErrCantChangeAdminPassword
 	}
 
 	password = strings.TrimSpace(password)
@@ -104,7 +89,7 @@ func (r *userImpl) ChangePassword(userID int64, password string) error {
 	}
 
 	if user == nil {
-		return errUserNotFound
+		return repository.ErrUserNotFound
 	}
 
 	user.Password = password
@@ -119,7 +104,7 @@ func (r *userImpl) ChangePassword(userID int64, password string) error {
 	_, err = r.db.Exec(context.Background(), "UPDATE users SET encrypted_password=$1 WHERE id=$2", enc, userID)
 	if err != nil {
 		if e := pgerror.UniqueViolation(err); e != nil {
-			return errLoginExist
+			return repository.ErrLoginExist
 		}
 
 		return werrors.Wrap(err, "Exec error")
@@ -129,10 +114,10 @@ func (r *userImpl) ChangePassword(userID int64, password string) error {
 }
 
 // FindByID Поиск пользователя по ID
-func (r *userImpl) FindByID(userID int64) (*model.User, error) {
+func (r *userImpl) FindByID(userID uint64) (*model.User, error) {
 	// не админ ли это?
 	if userID == config.AppConfig.SuperAdminID {
-		return r.adminUser(), nil
+		return model.AdminUser(), nil
 	}
 
 	u := &model.User{
@@ -173,7 +158,7 @@ func (r *userImpl) FindByLogin(login string) (*model.User, error) {
 
 	// не админ ли это?
 	if strings.EqualFold(login, config.AppConfig.SuperAdminLogin) {
-		u = r.adminUser()
+		u = model.AdminUser()
 	} else {
 		if err := r.db.QueryRow(context.Background(),
 			"SELECT id, login, name, encrypted_password FROM users WHERE login = $1",
@@ -196,7 +181,7 @@ func (r *userImpl) FindByLogin(login string) (*model.User, error) {
 }
 
 // GetUsers Получить список пользователей
-func (r *userImpl) GetUsers() ([]model.User, error) {
+func (r *userImpl) GetUsers() (*[]model.User, error) {
 	rows, err := r.db.Query(context.Background(),
 		`SELECT id, login, name, encrypted_password FROM users`)
 	if err != nil {
@@ -219,10 +204,10 @@ func (r *userImpl) GetUsers() ([]model.User, error) {
 
 	rows.Close()
 
-	return users, nil
+	return &users, nil
 }
 
-func (r *userImpl) Remove(_ int64) error {
+func (r *userImpl) Remove(_ uint64) error {
 	return app.ErrNotImplemented
 }
 

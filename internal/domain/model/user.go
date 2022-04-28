@@ -5,20 +5,20 @@
 package model
 
 import (
-	"fmt"
+	"log"
 	"regexp"
 	"strings"
 
-	validation "github.com/go-ozzo/ozzo-validation"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	_ "github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/n-r-w/log-server/internal/app/config"
 	"github.com/n-r-w/log-server/internal/tool"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // User Модель пользователя
 type User struct {
-	ID                int64  `json:"id"`
+	ID                uint64 `json:"id"`
 	Login             string `json:"login"`
 	Name              string `json:"name"`
 	Password          string `json:"password,omitempty"`
@@ -27,13 +27,14 @@ type User struct {
 
 // Validate Валидация ...
 func (u *User) Validate() error {
-	return fmt.Errorf("failed validation %w", validation.ValidateStruct(
+	return validation.ValidateStruct(
 		u,
 		validation.Field(&u.Login, validation.Required),
 		validation.Field(&u.Name, validation.Required),
-		validation.Field(&u.Password, validation.By(tool.RequiredIf(u.EncryptedPassword == "")),
-			validation.Match(regexp.MustCompile(config.AppConfig.PasswordRegex)).Error(config.AppConfig.PasswordRegexError)),
-	))
+		validation.Field(&u.Password, validation.When(len(u.EncryptedPassword) == 0, validation.Required)),
+		validation.Field(&u.Password, validation.When(len(u.EncryptedPassword) == 0,
+			validation.Match(regexp.MustCompile(config.AppConfig.PasswordRegex)).Error(config.AppConfig.PasswordRegexError))),
+	)
 }
 
 // Prepare Подготовка данных после первой инициализации (инициализация хэша пароля)
@@ -65,5 +66,24 @@ func (u *User) sanitize() {
 
 // ComparePassword Подходит ли пароль
 func (u *User) ComparePassword(password string) bool {
-	return bcrypt.CompareHashAndPassword([]byte(u.EncryptedPassword), []byte(password)) == nil
+	return tool.ComparePassword(u.EncryptedPassword, password)
+}
+
+// AdminUser - Фейковый пользователь - админ
+func AdminUser() *User {
+	user := &User{
+		ID:                config.AppConfig.SuperAdminID,
+		Name:              "admin",
+		Login:             config.AppConfig.SuperAdminLogin,
+		Password:          config.AppConfig.SuperPassword,
+		EncryptedPassword: "",
+	}
+
+	if err := tool.LogIf(user.Prepare(true), "internal error"); err != nil {
+		log.Fatalln("internal error")
+
+		return nil
+	}
+
+	return user
 }

@@ -4,6 +4,8 @@ BIND_ADDR = "localhost:8080"
 SUPERADMIN_LOGIN = "admin"
 # пароль для админа. админ не содержится в БД и всегда неявно присутствует
 SUPERADMIN_PASSWORD = "123"
+# время жизни сессии пользователя в секундах
+SESSION_AGE = 9999
 # уровень отладки
 LOG_LEVEL = "debug"
 # строка подключения к БД
