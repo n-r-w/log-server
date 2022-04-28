@@ -28,7 +28,7 @@
 Нагрузочное тестирование проводилось C++ клиентом: https://github.com/n-r-w/loglib
 
 ## Примеры запросов
-Логин
+Логин (надо сохранить полученный в ответе куки logserver для следующих запросов)
 
     curl --location --request POST 'http://localhost:8080/login' \
     --header 'Content-Type: application/json' \    
