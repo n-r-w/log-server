@@ -3,6 +3,8 @@
 Пример сервера логов на Go, построенного по принципам Clean Architecture. Пример учебный и в проде не использовался.
 Сервер работает по http rest, в качестве БД используется postgresql (инициализация БД в каталоге migration). Вместо postgres можно использовать тестовое хранилище в оперативной памяти.
 
+Кроме REST умеет работать как обычный вебсервер. Демо: http://195.133.47.160:8080 (логин: admin, пароль: q!123). 
+
 Имеет следующие функции:
 * Аутентификация
 * Добавление/удаление пользователей
@@ -30,30 +32,30 @@
 ## Примеры запросов
 Логин (надо сохранить полученный в ответе куки logserver для следующих запросов)
 
-    curl --location --request POST 'http://localhost:8080/login' \
+    curl --location --request POST 'localhost:8080/api/auth/login' \
     --header 'Content-Type: application/json' \    
     --data-raw '{"login": "admin", "password": "123"}'
 
 Получить логи за период
 
-    curl --location --request GET 'http://localhost:8080/private/records' \
+    curl --location --request GET 'http://localhost:8080/api/private/records' \
     --header 'Content-Type: application/json' \
     --header 'Cookie: logserver=MTY1MTE0ODY2MHxEdi1CQkFFQ180SUFBUkFCRUFBQUlmLUNBQUVHYzNSeWFXNW5EQWtBQjNWelpYSmZhV1FHZFdsdWREWTBCZ0lBQVE9PXw8B2eSdqLJfQJEhsrqGnuCrf5l2_ofcwCgA0Zn0sUErg==' \
     --data-raw '{"timeFrom": "2021-04-23T14:37:36.546Z","timeTo": "2022-04-23T18:25:43.511Z"}'
 
 Получить список пользователей
 
-    curl --location --request GET 'http://localhost:8080/private/users' \
+    curl --location --request GET 'http://localhost:8080/api/private/users' \
     --header 'Cookie: logserver=MTY1MTE0ODcwNHxEdi1CQkFFQ180SUFBUkFCRUFBQUlmLUNBQUVHYzNSeWFXNW5EQWtBQjNWelpYSmZhV1FHZFdsdWREWTBCZ0lBQVE9PXwuhL1Tz50lNOOEU6N_k2oWo6wJd1ripsKVaKIJ6XxEIw=='
 
 Состояние аутентификации
 
-    curl --location --request GET 'http://localhost:8080/private/whoami' \
+    curl --location --request GET 'http://localhost:8080/api/private/whoami' \
     --header 'Cookie: logserver=MTY1MTE0ODc0OXxEdi1CQkFFQ180SUFBUkFCRUFBQUlmLUNBQUVHYzNSeWFXNW5EQWtBQjNWelpYSmZhV1FHZFdsdWREWTBCZ0lBQVE9PXyLopILCIZS4nL8ORE6xDjmIi7aTPd77FxMBbh4apOndg=='
 
 Добавить логи
 
-    curl --location --request POST 'http://localhost:8080/private/add-log' \
+    curl --location --request POST 'http://localhost:8080/api/private/add-user' \
     --header 'Content-Type: application/json' \
     --header 'Cookie: logserver=MTY1MTE0ODc0OXxEdi1CQkFFQ180SUFBUkFCRUFBQUlmLUNBQUVHYzNSeWFXNW5EQWtBQjNWelpYSmZhV1FHZFdsdWREWTBCZ0lBQVE9PXyLopILCIZS4nL8ORE6xDjmIi7aTPd77FxMBbh4apOndg==' \
     --data-raw '[{"logTime": "2020-04-23T18:25:43.511Z", "level": 4, "message1": "ошибка №2"}]'
@@ -67,12 +69,12 @@
 
 Сменить пароль
 
-    curl --location --request PUT 'http://localhost:8080/private/change-password' \
+    curl --location --request PUT 'http://localhost:8080/api/private/change-password' \
     --header 'Content-Type: application/json' \
     --header 'Cookie: logserver=MTY1MTE0ODc0OXxEdi1CQkFFQ180SUFBUkFCRUFBQUlmLUNBQUVHYzNSeWFXNW5EQWtBQjNWelpYSmZhV1FHZFdsdWREWTBCZ0lBQVE9PXyLopILCIZS4nL8ORE6xDjmIi7aTPd77FxMBbh4apOndg==' \
     --data-raw '{"login": "user10", "password": "1111" }'
 
 Завершить сессию
 
-    curl --location --request DELETE 'http://localhost:8080/close' \
+    curl --location --request DELETE 'http://localhost:8080/api/auth/close' \
     --header 'Cookie: logserver=MTY1MTE0ODkwN3xEdi1CQkFFQ180SUFBUkFCRUFBQUJQLUNBQUE9fJ6mswXN2vd3W_DpWOh7AsKYuaJiF2hd10JEUZOkKUTb'
