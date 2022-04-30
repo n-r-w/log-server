@@ -118,7 +118,7 @@ func page(title, path string, body g.Node) g.Node {
 		Title:    title,
 		Language: "ru",
 		Head:     styles,
-		Body: []g.Node{colorStyleAttr,
+		Body: []g.Node{colorStyleAttr, Class("bg-gray-700 mb-3 max-w-7xl mx-0 px-0 sm:px-0 lg:px-0"),
 			Div(navbar(path, navInfo),
 				Div(Class("prose-sm px-5 py-0 mt-0"), body)),
 		},
