@@ -54,7 +54,7 @@ func (p *logImpl) Insert(records *[]model.LogRecord) error {
 
 func (p *logImpl) Find(dateFrom time.Time, dateTo time.Time, limit int) (records *[]model.LogRecord, limited bool, err error) {
 	rows, err := p.db.Query(context.Background(),
-		`SELECT id, record_timestamp, real_timestamp, level, message1, message2, message3 
+		`SELECT id, record_timestamp, real_timestamp, level,  message1, COALESCE(message2, ''), COALESCE(message3, '') 
 		FROM log
 		WHERE ($1 OR record_timestamp >= $2) AND ($3 OR record_timestamp <= $4)
 		ORDER BY record_timestamp DESC
