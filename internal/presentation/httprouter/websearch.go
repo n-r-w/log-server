@@ -38,7 +38,7 @@ window.addEventListener("load", function(){
 )
 
 var (
-	columnAttrs = []g.Node{g.Attr("scope", "col"), StyleAttr("text-align: center")}
+	columnAttrs = []g.Node{g.Attr("scope", "col"), StyleAttr("text-align: left; word-wrap:break-word;")}
 	columnClass = `px-6 py-4 font-medium text-white whitespace-nowrap`
 	tableInfo   = []struct {
 		headerName  string
@@ -56,7 +56,7 @@ var (
 			headeStyle:  []g.Node{StyleAttr("min-width:150px; text-align: center")},
 			headerClass: "px-6 py-3",
 			columnClass: columnClass,
-			columnAttrs: columnAttrs,
+			columnAttrs: []g.Node{g.Attr("scope", "col"), StyleAttr("text-align: center; word-wrap:break-word;")},
 			columnWidth: 10,
 		},
 		{
@@ -70,6 +70,7 @@ var (
 		{
 			headerName:  "Информация",
 			headerAttrs: columnAttrs,
+			headeStyle:  []g.Node{StyleAttr("max-width:100px; text-align: left")},
 			headerClass: "px-6 py-3",
 			columnClass: columnClass,
 			columnAttrs: columnAttrs,
@@ -154,7 +155,7 @@ func (router *HTTPRouter) webIndex(w http.ResponseWriter, r *http.Request) g.Nod
 			g.Group(rowItems)))
 	}
 
-	table := Div(Class("flex flex-col "), StyleAttr("height:88vh"),
+	table := Div(Class("flex flex-col "), StyleAttr("height:88vh; table-layout: fixed;"),
 		Div(Class("flex-grow overflow-auto"),
 			Table(tableClass, colorStyleAttr,
 				THead(tableHeaderClass, tableHeaderColorStyleAttr,
