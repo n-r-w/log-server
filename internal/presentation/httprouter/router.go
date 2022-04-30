@@ -4,13 +4,17 @@ import (
 	"bytes"
 	"compress/flate"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -69,8 +73,10 @@ func NewRouter(domain *domain.Domain, sessionStore sessions.Store) *HTTPRouter {
 		sessionStore: sessionStore,
 		domain:       domain,
 	}
-	// инициализация маршрутов
-	r.initRoutes()
+	// инициализация маршрутов для rest api
+	r.initRestRoutes()
+	// инициализация маршрутов для web запросов
+	r.initWebRoutes()
 
 	return &r
 }
@@ -82,22 +88,64 @@ func (router *HTTPRouter) Start() error {
 		return errors.Wrap(err, "listen error")
 	}
 
+	// headersOk := handlers.AllowedHeaders([]string{"X-Requested-With"})
+	// originsOk := handlers.AllowedOrigins([]string{"*"})
+	// methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
+
+	// таймауты
+	srv := &http.Server{
+		WriteTimeout: time.Second * 15,
+		ReadTimeout:  time.Second * 15,
+		IdleTimeout:  time.Second * 60,
+		// Handler:      handlers.CORS(originsOk, methodsOk)(router.router),
+		Handler: router.router,
+	}
+
 	logger.Logger().Infof("%s listening on %s", AppName, config.AppConfig.BindAddr)
-	// Запуск event loop TODO - таймауты
-	return errors.Wrap(http.Serve(l, router.router), "serve error")
+
+	// Начинаем слушать порт в отдельном потоке
+	go func() {
+		if err := srv.Serve(l); err != nil {
+			log.Println(err)
+		}
+	}()
+
+	// Обрабатываем сигнал SIGINT (Ctrl+C)
+	// SIGKILL, SIGQUIT or SIGTERM (Ctrl+/) перехватываться не будут
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
+	// Ждем получения сигнала
+	<-c
+
+	// Время ожидания закрытия соединений
+	wait := time.Second * 15
+
+	// Создаем контекст для закрытия
+	ctx, cancel := context.WithTimeout(context.Background(), wait)
+	defer cancel()
+
+	// Если нет соединений, то сервер закроется сразу, иначе будет ждать закрытия или истечения времени
+	_ = srv.Shutdown(ctx)
+
+	// Если нужно ждать завершения других сервисов, то надо запустить srv.Shutdown в горутине
+	// и остановиться на <-ctx.Done()
+
+	log.Println("shutting down")
+
+	return nil
 }
 
 // Ответ с ошибкой
 func (router *HTTPRouter) respondError(w http.ResponseWriter, r *http.Request, code int, err error) {
-	if code > 0 {
-		w.WriteHeader(code)
-	}
-
 	router.respond(w, r, code, map[string]string{"error": err.Error()})
 }
 
 // Ответ на запрос без сжатия
 func (router *HTTPRouter) respond(w http.ResponseWriter, _ *http.Request, code int, data interface{}) {
+	if code > 0 {
+		w.WriteHeader(code)
+	}
 	if data != nil {
 		switch d := data.(type) {
 		case string:
@@ -108,10 +156,6 @@ func (router *HTTPRouter) respond(w http.ResponseWriter, _ *http.Request, code i
 				_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
 
 				return
-			}
-
-			if code > 0 {
-				w.WriteHeader(code)
 			}
 
 			w.Header().Set("Content-Type", "application/json")

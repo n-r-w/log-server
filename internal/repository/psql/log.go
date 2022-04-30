@@ -52,41 +52,49 @@ func (p *logImpl) Insert(records *[]model.LogRecord) error {
 	return errors.Wrap(err, "exec error")
 }
 
-func (p *logImpl) Find(dateFrom time.Time, dateTo time.Time) (*[]model.LogRecord, error) {
+func (p *logImpl) Find(dateFrom time.Time, dateTo time.Time, limit int) (records *[]model.LogRecord, limited bool, err error) {
 	rows, err := p.db.Query(context.Background(),
 		`SELECT id, record_timestamp, real_timestamp, level, message1, message2, message3 
 		FROM log
-		WHERE ($1 OR record_timestamp >= $2) AND ($3 OR record_timestamp <= $4)`,
-		dateFrom.IsZero(), dateFrom, dateTo.IsZero(), dateTo)
+		WHERE ($1 OR record_timestamp >= $2) AND ($3 OR record_timestamp <= $4)
+		ORDER BY record_timestamp DESC
+		LIMIT $5`,
+		dateFrom.IsZero(), dateFrom, dateTo.IsZero(), dateTo, limit+1)
 	if err != nil {
-		return nil, errors.Wrap(err, "query error")
+		return nil, false, errors.Wrap(err, "query error")
 	}
 	defer rows.Close() // освобождаем контекст sql запроса при выходе
 
-	var records []model.LogRecord
+	var recs []model.LogRecord
 
-	var rowCount int64
+	var rowCount uint64
+	limited = false
 
 	for rows.Next() {
 		var record model.LogRecord
 
 		if err := rows.Scan(&record.ID, &record.LogTime, &record.RealTime,
 			&record.Level, &record.Message1, &record.Message2, &record.Message3); err != nil {
-			return nil, errors.Wrap(err, "rows scan error")
+			return nil, false, errors.Wrap(err, "rows scan error")
 		}
 
 		rowCount++
-		if rowCount > config.AppConfig.MaxLogRecordsResult {
-			err := fmt.Errorf("too many records, max %d", config.AppConfig.MaxLogRecordsResult)
-			return nil, err
+		if rowCount > uint64(limit) {
+			limited = true
+			break
 		}
 
-		records = append(records, record)
+		if rowCount > uint64(config.AppConfig.MaxLogRecordsResult) {
+			err := fmt.Errorf("too many records, max %d", config.AppConfig.MaxLogRecordsResult)
+			return nil, false, err
+		}
+
+		recs = append(recs, record)
 	}
 
 	// при rows.Scan может быть ошибка и тогда defer rows.Close() не вызовется
 	// поэтому надежнее сделать как defer rows.Close(), так и прямое закрытие здесь
 	rows.Close()
 
-	return &records, nil
+	return &recs, limited, nil
 }

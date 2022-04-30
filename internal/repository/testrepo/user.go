@@ -42,8 +42,8 @@ func (r *testUserImpl) Insert(user *model.User) error {
 	}
 
 	r.dbImpl.userMutex.Lock()
-	r.dbImpl.userByID[r.dbImpl.userIdMax] = user
 	r.dbImpl.userIdMax++
+	r.dbImpl.userByID[r.dbImpl.userIdMax] = user
 	user.ID = r.dbImpl.userIdMax
 	r.dbImpl.userMutex.Unlock()
 

@@ -39,8 +39,8 @@ func (p *testLogImpl) Insert(records *[]model.LogRecord) error {
 	return nil
 }
 
-func (p *testLogImpl) Find(dateFrom time.Time, dateTo time.Time) (*[]model.LogRecord, error) {
-	records := make([]model.LogRecord, 0, 100)
+func (p *testLogImpl) Find(dateFrom time.Time, dateTo time.Time, limit int) (records *[]model.LogRecord, limited bool, err error) {
+	recs := make([]model.LogRecord, 0, 100)
 
 	p.dbImpl.logMutex.RLock()
 	for _, r := range p.dbImpl.logByID {
@@ -52,9 +52,12 @@ func (p *testLogImpl) Find(dateFrom time.Time, dateTo time.Time) (*[]model.LogRe
 			continue
 		}
 
-		records = append(records, *r)
+		recs = append(recs, *r)
+		if len(recs) >= limit {
+			break
+		}
 	}
 	p.dbImpl.logMutex.RUnlock()
 
-	return &records, nil
+	return &recs, false, nil
 }

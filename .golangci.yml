@@ -6,6 +6,9 @@ linters:
     - gochecknoglobals
     - goimports
     - varnamelen
+    - ireturn
+    - wsl
+    - forbidigo
 
 linters-settings:
   # gci:    

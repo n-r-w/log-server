@@ -24,7 +24,7 @@ func (l *logCase) Insert(logs *[]model.LogRecord) error {
 	return errors.Wrap(l.RepoLog.Insert(logs), "insert error")
 }
 
-func (l *logCase) Find(dateFrom time.Time, dateTo time.Time) (*[]model.LogRecord, error) {
-	r, e := l.RepoLog.Find(dateFrom, dateTo)
-	return r, errors.Wrap(e, "find error")
+func (l *logCase) Find(dateFrom time.Time, dateTo time.Time, limit int) (records *[]model.LogRecord, limited bool, err error) {
+	r, lim, e := l.RepoLog.Find(dateFrom, dateTo, limit)
+	return r, lim, errors.Wrap(e, "find error")
 }

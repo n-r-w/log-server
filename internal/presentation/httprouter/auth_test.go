@@ -71,7 +71,7 @@ func TestHTTPRouter_AuthenticateUser(t *testing.T) {
 
 	// создаем новый куки
 	sc := securecookie.New([]byte(config.AppConfig.SessionEncriptionKey), nil)
-	// получаем создаем функцию аутентификации
+	// создаем функцию аутентификации
 	mw := router.AuthenticateUser(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -81,7 +81,7 @@ func TestHTTPRouter_AuthenticateUser(t *testing.T) {
 			// создаем тестовую реализацию http.ResponseWriter
 			rec := httptest.NewRecorder()
 			// создаем новый запрос
-			req, _ := http.NewRequest(http.MethodGet, "/", nil)
+			req, _ := http.NewRequest(http.MethodGet, "/api/private/whoami", nil)
 			// имитируем наличие в куки номера сессии или его отсутствие (в зависимости от теста)
 			cookieStr, _ := sc.Encode(httprouter.SessionName, tc.cookieValue)
 			// запихиваем в заголовок эти куки

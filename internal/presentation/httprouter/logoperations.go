@@ -52,7 +52,7 @@ func (router *HTTPRouter) getLogRecords() http.HandlerFunc {
 			return
 		}
 
-		records, err := router.domain.LogUsecase.Find(req.TimeFrom, req.TimeTo)
+		records, _, err := router.domain.LogUsecase.Find(req.TimeFrom, req.TimeTo, 1)
 		if err != nil || records == nil {
 			router.respondError(w, r, http.StatusInternalServerError, err)
 

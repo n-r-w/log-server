@@ -52,11 +52,12 @@ func (router *HTTPRouter) handleSessionsCreate() http.HandlerFunc {
 		// записываем информацию о том, что пользователь с таким ID залогинился
 		session.Values[UserIDKeyName] = ID
 		session.Options = &sessions.Options{
-			Path:     "",
-			Domain:   "",
-			MaxAge:   config.AppConfig.SessionAge,
-			Secure:   false,
-			HttpOnly: true, // прячем содержимое сессии от доступа через JavaSript в браузере
+			Path:   "/",
+			Domain: "",
+			MaxAge: config.AppConfig.SessionAge,
+			Secure: false,
+			// HttpOnly: true, // прячем содержимое сессии от доступа через JavaSript в браузере
+			HttpOnly: false,
 			SameSite: 0,
 		}
 
@@ -73,29 +74,12 @@ func (router *HTTPRouter) handleSessionsCreate() http.HandlerFunc {
 // AuthenticateUser - Аутентификация пользователя на основании ранее прошедшего логина (создания сессии)
 func (router *HTTPRouter) AuthenticateUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// извлекаем из запроса пользователя куки с инфорамацией о сессии
-		session, err := router.sessionStore.Get(r, SessionName)
+		user, httpCode, err := router.isAuthenticated(r)
 		if err != nil {
-			router.respondError(w, r, http.StatusInternalServerError, err)
-
+			router.respondError(w, r, httpCode, err)
 			return
 		}
 
-		// ищем в информацию о пользователе в сессиях
-		id, ok := session.Values[UserIDKeyName]
-		if !ok || session.Options.MaxAge < 0 {
-			router.respondError(w, r, http.StatusUnauthorized, errNotAuthenticated)
-
-			return
-		}
-
-		// берем инфу о пользователе из БД
-		user, err := router.domain.UserUsecase.FindByID(id.(uint64))
-		if err != nil {
-			router.respondError(w, r, http.StatusUnauthorized, errNotAuthenticated)
-
-			return
-		}
 		// добавляем модель пользователя в контекст запроса
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKeyUser, user)))
 	})
@@ -215,4 +199,31 @@ func (router *HTTPRouter) changePassword() http.HandlerFunc {
 
 		router.respond(w, r, http.StatusOK, nil)
 	}
+}
+
+func (router *HTTPRouter) isAuthenticated(r *http.Request) (user *model.User, httpCode int, err error) {
+
+	// извлекаем из запроса пользователя куки с инфорамацией о сессии
+	session, err := router.sessionStore.Get(r, SessionName)
+	if err != nil {
+		return nil, http.StatusUnauthorized, err
+	}
+
+	// ищем в информацию о пользователе в сессиях
+	id, ok := session.Values[UserIDKeyName]
+	if !ok || session.Options.MaxAge < 0 {
+		return nil, http.StatusUnauthorized, errNotAuthenticated
+	}
+
+	// берем инфу о пользователе из БД
+	user, err = router.domain.UserUsecase.FindByID(id.(uint64))
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+
+	if user == nil {
+		return nil, http.StatusNotFound, errNotAuthenticated
+	}
+
+	return user, http.StatusOK, nil
 }

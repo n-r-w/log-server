@@ -17,7 +17,8 @@ type config struct {
 	SessionEncriptionKey    string `toml:"SESSION_ENCRYPTION_KEY"`
 	MaxDbSessions           int    `toml:"MAX_DB_SESSIONS"`
 	MaxDbSessionIdleTimeSec int    `toml:"MAX_DB_SESSION_IDLE_TIME_SEC"`
-	MaxLogRecordsResult     int64  `toml:"MAX_LOG_RECORDS_RESULT"`
+	MaxLogRecordsResult     int    `toml:"MAX_LOG_RECORDS_RESULT"`
+	MaxLogRecordsResultWeb  int    `toml:"MAX_LOG_RECORDS_RESULT_WEB"`
 	PasswordRegex           string `toml:"PASSWORD_REGEX"`
 	PasswordRegexError      string `toml:"PASSWORD_REGEX_ERROR"`
 }
@@ -30,6 +31,7 @@ const (
 	maxDbSessions           = 50
 	maxDbSessionIdleTimeSec = 50
 	maxLogRecordsResult     = 100000
+	maxLogRecordsResultWeb  = 1000
 	defaultSessionAge       = 60 * 60 * 24 // 24 часа
 )
 
@@ -47,6 +49,7 @@ func Load(path string) error {
 		MaxDbSessions:           maxDbSessions,
 		MaxDbSessionIdleTimeSec: maxDbSessionIdleTimeSec,
 		MaxLogRecordsResult:     maxLogRecordsResult,
+		MaxLogRecordsResultWeb:  maxLogRecordsResultWeb,
 		// PasswordRegex:           "^[A-Za-z0-9@$!%*?&]{8,}$",
 		PasswordRegex:      ".*",
 		PasswordRegexError: "Латинские буквы, цифры и символы @$!%*?& без пробелов, минимум 4 символа",

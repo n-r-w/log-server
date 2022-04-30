@@ -5,7 +5,7 @@ import (
 )
 
 // инициализация маршрутов
-func (router *HTTPRouter) initRoutes() {
+func (router *HTTPRouter) initRestRoutes() {
 	// установка middleware
 	router.router.Use(router.setRequestID) // подмешивание номера сессии
 	router.router.Use(router.logRequest)   // журналирование запросов
@@ -13,14 +13,16 @@ func (router *HTTPRouter) initRoutes() {
 	// разрешаем запросы к серверу c любых доменов (cross-origin resource sharing)
 	router.router.Use(handlers.CORS(handlers.AllowedOrigins([]string{"*"})))
 
+	// создаем подчиненный роутер для запросов аутентификации
+	authSubrout := router.router.PathPrefix("/api/auth").Subrouter()
 	// логин
-	router.router.HandleFunc("/login", router.handleSessionsCreate()).Methods("POST")
+	authSubrout.HandleFunc("/login", router.handleSessionsCreate()).Methods("POST")
 	// закрытие сессии
-	router.router.HandleFunc("/close", router.closeSession()).Methods("DELETE")
+	authSubrout.HandleFunc("/close", router.closeSession()).Methods("DELETE")
 
 	// ========== запросы, которые возможны только после логина ============
 	// создаем подчиненный роутер
-	private := router.router.PathPrefix("/private").Subrouter()
+	private := router.router.PathPrefix("/api/private").Subrouter()
 	// устанавливаем middleware для проверки валидности сессии
 	private.Use(router.AuthenticateUser)
 

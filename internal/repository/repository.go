@@ -31,7 +31,7 @@ type UserInterface interface {
 type LogInterface interface {
 	Insert(records *[]model.LogRecord) error
 
-	Find(dateFrom time.Time, dateTo time.Time) (*[]model.LogRecord, error)
+	Find(dateFrom time.Time, dateTo time.Time, limit int) (records *[]model.LogRecord, limited bool, err error)
 }
 
 var (

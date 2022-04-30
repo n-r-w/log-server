@@ -1,5 +1,5 @@
 # порт запуска сервера
-BIND_ADDR = "localhost:8080"
+BIND_ADDR = "0.0.0.0:8080"
 # логин для админа. админ не содержится в БД и всегда неявно присутствует
 SUPERADMIN_LOGIN = "admin"
 # пароль для админа. админ не содержится в БД и всегда неявно присутствует
@@ -18,6 +18,8 @@ MAX_DB_SESSION_IDLE_TIME_SEC = 10
 SESSION_ENCRYPTION_KEY = "e09469b1507d0e7a98831750aff903e0831a428f9addf3cfa348fa64dcfb249a0f8c666f8dda6315c19c5ed946d89703a134db0eae8b4632d063b4a06207b8a3"
 # Максимальное количество записей лога, возвращающемое по запросу
 MAX_LOG_RECORDS_RESULT = 999999999
+# Максимальное количество записей лога, возвращающемое по запросу с веба
+MAX_LOG_RECORDS_RESULT_WEB = 10000
 
 # Minimum eight characters, at least one letter and one number:
 # "^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$"

@@ -33,7 +33,7 @@ func main() {
 
 	var logRepo repository.LogInterface
 
-	if false {
+	if true {
 		// реальная БД
 		dbo, err := psql.CreatePsqlDBO()
 		if err != nil {
