@@ -1,6 +1,6 @@
 # Пример сервера логов на Go, построенного по принципам Clean Architecture (Golang log server with a clean architecture approach)
 
-# Это неактуальный код. Новая версию находится тут: https://github.com/n-r-w/log-server-v2
+# Это неактуальный код. Новая версия находится тут: https://github.com/n-r-w/log-server-v2
 Пример сервера логов на Go, построенного по принципам Clean Architecture. Пример учебный и в проде не использовался.
 Сервер работает по http rest, в качестве БД используется postgresql (инициализация БД в каталоге migration). Вместо postgres можно использовать тестовое хранилище в оперативной памяти.
 
